@@ -26,6 +26,8 @@ namespace AruaRoseLoginManager.Controls
         /// </summary>
         private List<TextBox> _characterTextBoxes;
 
+
+
         /// <summary>
         /// Event to raise when clicking cancel
         /// </summary>
@@ -65,9 +67,11 @@ namespace AruaRoseLoginManager.Controls
             _passwordTextBox.Clear();
             _reinputPasswordTip.Visibility = Visibility.Visible;
             _descriptionTextBox.Text = account.Description;
+
+            // Populate character names
             for(short i = 0; i < account.Characters.Count && i < _characterTextBoxes.Count; i++)
             {
-                _characterTextBoxes[i].Text = account.Characters[i];
+                _characterTextBoxes[i].Text = account.Characters[i].Name;
             }
         }
 
@@ -81,9 +85,13 @@ namespace AruaRoseLoginManager.Controls
             _passwordTextBox.Clear();
             _reinputPasswordTip.Visibility = Visibility.Hidden;
             _descriptionTextBox.Clear();
-            foreach (TextBox textbox in _characterTextBoxes)
+            
+            if (_characterTextBoxes != null)
             {
-                textbox.Clear();
+                foreach (TextBox textbox in _characterTextBoxes)
+                {
+                    if (textbox != null) textbox.Clear();
+                }
             }
         }
 
@@ -122,12 +130,13 @@ namespace AruaRoseLoginManager.Controls
 
             if (sender != null && SaveAccount != null)
             {
-                List<string> characters = new List<string>();
-                foreach(TextBox charTextBox in _characterTextBoxes)
+                List<Character> characters = new List<Character>();
+                for (int i = 0; i < _characterTextBoxes.Count; i++)
                 {
-                    if (!string.IsNullOrWhiteSpace(charTextBox.Text))
+                    if (!string.IsNullOrWhiteSpace(_characterTextBoxes[i].Text))
                     {
-                        characters.Add(charTextBox.Text);
+                        // Default all characters to Location 1
+                        characters.Add(new Character(_characterTextBoxes[i].Text, 1));
                     }
                 }
 

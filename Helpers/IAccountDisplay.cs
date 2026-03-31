@@ -34,5 +34,17 @@ namespace AruaRoseLoginManager.Helpers
         /// <param name="username">The username to prompt for</param>
         /// <param name="serverId">The server being logged in to</param>
         void PromptForPassword(string username, Server serverId);
+
+        /// <summary>
+        /// Applies the account table column widths.
+        /// </summary>
+        /// <param name="widths">Width of each visible column</param>
+        void SetColumnWidths(double[] widths);
+
+        /// <summary>
+        /// Gets the current account table column widths.
+        /// </summary>
+        /// <returns>Width of each visible column</returns>
+        double[] GetColumnWidths();
     }
 }

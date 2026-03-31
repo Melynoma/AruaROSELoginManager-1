@@ -32,7 +32,7 @@ namespace AruaRoseLoginManager.Data
         /// <summary>
         /// Characters on the account
         /// </summary>
-        public List<string> Characters { get; private set; }
+        public List<Character> Characters { get; private set; }
 
         /// <summary>
         /// Constructor
@@ -41,12 +41,12 @@ namespace AruaRoseLoginManager.Data
         /// <param name="passwordHash">The account MD5 password hash</param>
         /// <param name="description">A description of the account</param>
         /// <param name="characters">Characters on the account</param>
-        public Account(string username, string passwordHash, string description = "", List<string> characters = null)
+        public Account(string username, string passwordHash, string description = "", List<Character> characters = null)
         {
             Username = username;
             PasswordHash = passwordHash;
             Description = description;
-            Characters = characters ?? new List<string>();
+            Characters = characters ?? new List<Character>();
         }
     }
 }

@@ -6,8 +6,10 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -42,6 +44,11 @@ namespace AruaRoseLoginManager.Controls
         private string _itemIdentifier;
 
         /// <summary>
+        /// Stores the account information for access during login
+        /// </summary>
+        private Account _accountInfo;
+
+        /// <summary>
         /// The background colour to use for odd positions
         /// </summary>
         private SolidColorBrush _oddBackgroundColour;
@@ -55,6 +62,31 @@ namespace AruaRoseLoginManager.Controls
         /// Flag to show extras like the emblem and password saved icon
         /// </summary>
         private bool _showExtras = true;
+
+        /// <summary>
+        /// Whether stream mode is enabled (for anonymization)
+        /// </summary>
+        private bool _streamMode = false;
+
+        /// <summary>
+        /// Start point for drag detection.
+        /// </summary>
+        private Point _dragStartPoint;
+
+        /// <summary>
+        /// Whether a drag may be initiated from current mouse down.
+        /// </summary>
+        private bool _canStartDrag;
+
+        /// <summary>
+        /// Drag data payload for row reordering.
+        /// </summary>
+        private class RowDragData
+        {
+            public string Id { get; set; }
+
+            public int Position { get; set; }
+        }
 
         /// <summary>
         /// Event to raise when the delete button is pressed
@@ -97,13 +129,27 @@ namespace AruaRoseLoginManager.Controls
         public ListDisplay(int position, Account info, ImageSource emblem) : this(position)
         {
             _itemIdentifier = info.Username;
+            _accountInfo = info;
             
             // Fill in account info
             _emblem.Source = emblem;
-            _listItemIdentifier.Text = info.Username;
+            _listItemIdentifier.Text = _streamMode ? "***********" : info.Username;
             _allInfoIncluded.Source = GetPasswordSavedIcon(info.PasswordHash);
             _listItemDescription.Text = info.Description;
-            _listItemDetails.Text = string.Join(", ", info.Characters.ToArray());
+            
+            // Extract character names from Character objects
+            List<string> characterNames = new List<string>();
+            if (info.Characters != null)
+            {
+                foreach (Character character in info.Characters)
+                {
+                    if (character != null && !string.IsNullOrWhiteSpace(character.Name))
+                    {
+                        characterNames.Add(character.Name);
+                    }
+                }
+            }
+            _listItemDetails.Text = string.Join(", ", characterNames.ToArray());
         }
 
         /// <summary>
@@ -115,13 +161,80 @@ namespace AruaRoseLoginManager.Controls
         {
             _itemIdentifier = info.Name;
             _showExtras = false;
+            _aruaGuardButton.Visibility = Visibility.Collapsed;
 
             // Fill in party info
-            _listDisplayGrid.ColumnDefinitions[0].Width = new GridLength(0);
             _listItemIdentifier.Text = info.Name;
             _allInfoIncluded.Visibility = Visibility.Hidden;
             _listItemDescription.Text = info.Description;
-            _listItemDetails.Text = string.Join(", ", info.Accounts.ToArray());
+            
+            // Parse party members to display with install locations and resolutions
+            List<string> displayMembers = new List<string>();
+            foreach (string member in info.Accounts)
+            {
+                if (member.Contains("|"))
+                {
+                    // Parse format: "CharacterName|InstallLocation|GameWidth|GameHeight|Fullscreen|PosX|PosY|Monitor"
+                    string[] parts = member.Split('|');
+                    string characterName = parts[0];
+                    int location = 1;
+                    int width = 1024;
+                    int height = 768;
+                    bool isFullscreen = false;
+                    int posX = 0;
+                    int posY = 0;
+                    int monitor = 0;
+                    
+                    if (parts.Length >= 2 && int.TryParse(parts[1], out int loc))
+                    {
+                        location = loc;
+                    }
+                    if (parts.Length >= 4)
+                    {
+                        int.TryParse(parts[2], out width);
+                        int.TryParse(parts[3], out height);
+                    }
+                    if (parts.Length >= 5)
+                    {
+                        bool.TryParse(parts[4], out isFullscreen);
+                    }
+
+                    if (parts.Length >= 6)
+                    {
+                        int.TryParse(parts[5], out posX);
+                    }
+
+                    if (parts.Length >= 7)
+                    {
+                        int.TryParse(parts[6], out posY);
+                    }
+
+                    if (parts.Length >= 8)
+                    {
+                        int.TryParse(parts[7], out monitor);
+                    }
+
+                    string modeText = isFullscreen ? "Fullscreen" : $"{width}x{height}";
+                    string positionText = isFullscreen ? "" : $" | Pos {posX},{posY}";
+                    string monitorText = $" | Monitor {monitor}";
+                    displayMembers.Add($"{characterName} [Location {location} | {modeText}{positionText}{monitorText}]");
+                }
+                else
+                {
+                    // Legacy format: just account/character name - add defaults
+                    displayMembers.Add($"{member} [Location 1 | 1024x768 | Pos 0,0 | Monitor 0]");
+                }
+            }
+
+            // Show each character/member on its own line for easier scanning in Parties.
+            _listItemDetails.Text = string.Join(Environment.NewLine, displayMembers);
+            _listItemDetails.TextWrapping = TextWrapping.Wrap;
+            _listItemDetails.TextTrimming = TextTrimming.None;
+            _listItemDetails.VerticalAlignment = VerticalAlignment.Top;
+
+            // Grow row height to fit multiple member lines without clipping.
+            int lineCount = Math.Max(displayMembers.Count, 1);
+            _listDisplayGrid.MinHeight = Math.Max(44, 10 + (lineCount * 18));
         }
 
         /// <summary>
@@ -134,6 +247,47 @@ namespace AruaRoseLoginManager.Controls
             _position = newPosition;
             UpdateBackground();
             UpdateButtons(totalDisplays);
+        }
+
+        /// <summary>
+        /// Applies externally-controlled column widths for account/party table alignment.
+        /// </summary>
+        /// <param name="widths">Column widths for the first 8 columns</param>
+        public void SetColumnWidths(double[] widths)
+        {
+            if (widths == null || widths.Length < 8)
+            {
+                return;
+            }
+
+            _col1.Width = new GridLength(widths[0], GridUnitType.Pixel);
+            _col2.Width = new GridLength(widths[1], GridUnitType.Pixel);
+            _col3.Width = new GridLength(widths[2], GridUnitType.Pixel);
+            _col4.Width = new GridLength(widths[3], GridUnitType.Pixel);
+            _col5.Width = new GridLength(widths[4], GridUnitType.Pixel);
+            _col6.Width = new GridLength(widths[5], GridUnitType.Pixel);
+            _col7.Width = new GridLength(widths[6], GridUnitType.Pixel);
+            _col8.Width = new GridLength(widths[7], GridUnitType.Pixel);
+        }
+
+        /// <summary>
+        /// Update stream mode and refresh account name display
+        /// </summary>
+        /// <param name="streamMode">Whether stream mode is enabled</param>
+        public void SetStreamMode(bool streamMode)
+        {
+            _streamMode = streamMode;
+            
+            // Account usernames are hidden in stream mode; party names are always shown
+            if (_accountInfo != null)
+            {
+                _listItemIdentifier.Text = _streamMode ? "***********" : _accountInfo.Username;
+            }
+            else if (!string.IsNullOrEmpty(_itemIdentifier) && _itemIdentifier != "Account")
+            {
+                // Party name - never hidden
+                _listItemIdentifier.Text = _itemIdentifier;
+            }
         }
 
         /// <summary>
@@ -198,13 +352,8 @@ namespace AruaRoseLoginManager.Controls
         /// </summary>
         private void CompactDisplay()
         {
-            // Hide emblem
-            _listDisplayGrid.ColumnDefinitions[0].Width = new GridLength(0);
-            // Hide movement buttons
-            _infoDisplayGrid.ColumnDefinitions[0].Width = new GridLength(0);
-            // Hide Edit/Delete buttons
-            _infoDisplayGrid.ColumnDefinitions[3].Width = new GridLength(0);
             _allInfoIncluded.Visibility = Visibility.Hidden;
+            _aruaGuardButton.Visibility = Visibility.Hidden;
 
         }
 
@@ -215,13 +364,9 @@ namespace AruaRoseLoginManager.Controls
         {
             if (_showExtras)
             {
-                _listDisplayGrid.ColumnDefinitions[0].Width = new GridLength(80);
                 _allInfoIncluded.Visibility = Visibility.Visible;
+                _aruaGuardButton.Visibility = Visibility.Visible;
             }
-            // Show movement buttons
-            _infoDisplayGrid.ColumnDefinitions[0].Width = new GridLength(35);
-            // Show Edit/Delete buttons
-            _infoDisplayGrid.ColumnDefinitions[3].Width = new GridLength(35);
         }
 
         /// <summary>
@@ -233,10 +378,25 @@ namespace AruaRoseLoginManager.Controls
         {
             if (sender != null && Login != null)
             {
+                // Use the first character's install location, or default to 1 if no characters
+                int installLocation = 1;
+                string characterName = "";
+                if (_accountInfo != null && _accountInfo.Characters != null && _accountInfo.Characters.Count > 0)
+                {
+                    Character firstChar = _accountInfo.Characters[0];
+                    if (firstChar != null)
+                    {
+                        characterName = firstChar.Name;
+                        installLocation = firstChar.InstallLocation;
+                    }
+                }
+
                 LoginEventArgs args = new LoginEventArgs()
                 {
                     Id = _itemIdentifier,
-                    ServerId = Server.Arua
+                    ServerId = Server.Arua,
+                    CharacterName = characterName,
+                    CharacterInstallLocation = installLocation
                 };
                 Login(this, args);
             }
@@ -251,13 +411,59 @@ namespace AruaRoseLoginManager.Controls
         {
             if (sender != null && Login != null)
             {
+                // Use the first character's install location, or default to 1 if no characters
+                int installLocation = 1;
+                string characterName = "";
+                if (_accountInfo != null && _accountInfo.Characters != null && _accountInfo.Characters.Count > 0)
+                {
+                    Character firstChar = _accountInfo.Characters[0];
+                    if (firstChar != null)
+                    {
+                        characterName = firstChar.Name;
+                        installLocation = firstChar.InstallLocation;
+                    }
+                }
+
                 LoginEventArgs args = new LoginEventArgs()
                 {
                     Id = _itemIdentifier,
-                    ServerId = Server.Classic
+                    ServerId = Server.Classic,
+                    CharacterName = characterName,
+                    CharacterInstallLocation = installLocation
                 };
                 Login(this, args);
             }
+        }
+
+        /// <summary>
+        /// Opens AruaGuard login page for this account.
+        /// </summary>
+        private void AruaGuardButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_accountInfo == null)
+            {
+                return;
+            }
+
+            Window owner = Application.Current == null ? null : Application.Current.MainWindow;
+            WebsitePasswordPrompt prompt = new WebsitePasswordPrompt(_accountInfo.Username)
+            {
+                Owner = owner
+            };
+
+            bool? accepted = prompt.ShowDialog();
+            if (accepted != true)
+            {
+                return;
+            }
+
+            WebsiteLoginWindow loginWindow = new WebsiteLoginWindow(_accountInfo.Username, prompt.WebsitePassword);
+            if (owner != null)
+            {
+                loginWindow.Owner = owner;
+            }
+
+            loginWindow.Show();
         }
 
         /// <summary>
@@ -344,6 +550,123 @@ namespace AruaRoseLoginManager.Controls
             {
                 NormalDisplay();
             }
+        }
+
+        /// <summary>
+        /// Captures start point for row drag operations.
+        /// </summary>
+        private void ListDisplayGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _dragStartPoint = e.GetPosition(this);
+            _canStartDrag = !IsClickFromButton(e.OriginalSource as DependencyObject);
+        }
+
+        /// <summary>
+        /// Starts drag operation when mouse movement exceeds system drag threshold.
+        /// </summary>
+        private void ListDisplayGrid_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (!_canStartDrag || e.LeftButton != MouseButtonState.Pressed || string.IsNullOrWhiteSpace(_itemIdentifier))
+            {
+                return;
+            }
+
+            Point current = e.GetPosition(this);
+            bool movedEnough = Math.Abs(current.X - _dragStartPoint.X) >= SystemParameters.MinimumHorizontalDragDistance
+                || Math.Abs(current.Y - _dragStartPoint.Y) >= SystemParameters.MinimumVerticalDragDistance;
+
+            if (!movedEnough)
+            {
+                return;
+            }
+
+            _canStartDrag = false;
+            RowDragData data = new RowDragData()
+            {
+                Id = _itemIdentifier,
+                Position = _position
+            };
+            DragDrop.DoDragDrop(this, data, DragDropEffects.Move);
+        }
+
+        /// <summary>
+        /// Enables move effect only for valid row drag payloads.
+        /// </summary>
+        private void ListDisplayGrid_DragOver(object sender, DragEventArgs e)
+        {
+            RowDragData data = e.Data.GetData(typeof(RowDragData)) as RowDragData;
+            e.Effects = data == null ? DragDropEffects.None : DragDropEffects.Move;
+            e.Handled = true;
+        }
+
+        /// <summary>
+        /// Reorders rows by emitting MoveListItem events until source reaches drop index.
+        /// </summary>
+        private void ListDisplayGrid_Drop(object sender, DragEventArgs e)
+        {
+            RowDragData data = e.Data.GetData(typeof(RowDragData)) as RowDragData;
+            if (data == null || MoveListItem == null || string.IsNullOrWhiteSpace(data.Id))
+            {
+                return;
+            }
+
+            int sourceIndex = data.Position;
+            int targetIndex = _position;
+            bool dropAfter = e.GetPosition(this).Y > (ActualHeight / 2.0);
+
+            int finalIndex;
+            if (sourceIndex < targetIndex)
+            {
+                finalIndex = dropAfter ? targetIndex : targetIndex - 1;
+            }
+            else if (sourceIndex > targetIndex)
+            {
+                finalIndex = dropAfter ? targetIndex + 1 : targetIndex;
+            }
+            else
+            {
+                finalIndex = dropAfter ? sourceIndex + 1 : sourceIndex;
+            }
+
+            if (finalIndex < 0)
+            {
+                finalIndex = 0;
+            }
+
+            int steps = finalIndex - sourceIndex;
+            if (steps == 0)
+            {
+                return;
+            }
+
+            MovementDirection direction = steps > 0 ? MovementDirection.Down : MovementDirection.Up;
+            for (int i = 0; i < Math.Abs(steps); i++)
+            {
+                MoveListItem(this, new MoveListItemEventArgs()
+                {
+                    Id = data.Id,
+                    Direction = direction
+                });
+            }
+        }
+
+        /// <summary>
+        /// Checks whether a mouse event originated from within a button.
+        /// </summary>
+        private bool IsClickFromButton(DependencyObject source)
+        {
+            DependencyObject current = source;
+            while (current != null)
+            {
+                if (current is Button)
+                {
+                    return true;
+                }
+
+                current = VisualTreeHelper.GetParent(current);
+            }
+
+            return false;
         }
     }
 }

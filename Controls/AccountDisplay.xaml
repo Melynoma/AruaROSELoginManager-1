@@ -9,6 +9,7 @@
     <Grid Background="#404040">
         <Grid.RowDefinitions>
             <RowDefinition Height="45" />
+            <RowDefinition Height="30" />
             <RowDefinition Height="*" />
             <RowDefinition Height="45" />
         </Grid.RowDefinitions>
@@ -20,14 +21,42 @@
         <Button Name="_addAccountButton" Grid.Row="0" Grid.Column="1" Width="150" HorizontalAlignment="Right" Margin="0 5 0 5" Click="AddAccountButton_Click">
             <Label Content="_New Account" FontSize="16"/>
         </Button>
-        <ScrollViewer Name="_accountDisplayScrollViewer" Grid.Row="1" Grid.Column="1" VerticalScrollBarVisibility="Auto">
+        <Grid Name="_headerGrid" Grid.Row="1" Grid.Column="1" Background="#E0E0E0" Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="_headerCol1" Width="2*" />
+                <ColumnDefinition x:Name="_headerCol2" Width="2*" />
+                <ColumnDefinition x:Name="_headerCol3" Width="4*" />
+                <ColumnDefinition x:Name="_headerCol4" Width="70" />
+                <ColumnDefinition x:Name="_headerCol5" Width="70" />
+                <ColumnDefinition x:Name="_headerCol6" Width="80" />
+                <ColumnDefinition x:Name="_headerCol7" Width="35" />
+                <ColumnDefinition x:Name="_headerCol8" Width="35" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Name="_headerTitle1" Grid.Column="0" Text="AccountName" FontWeight="Bold" VerticalAlignment="Center" Margin="8,0,4,0"/>
+            <TextBlock Name="_headerTitle2" Grid.Column="1" Text="Alias" FontWeight="Bold" VerticalAlignment="Center" Margin="8,0,4,0"/>
+            <TextBlock Name="_headerTitle3" Grid.Column="2" Text="Characters" FontWeight="Bold" VerticalAlignment="Center" Margin="8,0,4,0"/>
+            <TextBlock Name="_headerTitle4" Grid.Column="3" Text="Arua" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <TextBlock Name="_headerTitle5" Grid.Column="4" Text="Classic" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <TextBlock Name="_headerTitle6" Grid.Column="5" Text="AruaGuard" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <TextBlock Name="_headerTitle7" Grid.Column="6" Text="Edit" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <TextBlock Name="_headerTitle8" Grid.Column="7" Text="Delete" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+            <GridSplitter Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Stretch" Width="4" Background="#66000000" ResizeBehavior="PreviousAndNext" DragCompleted="HeaderColumnSplitter_DragCompleted"/>
+            <GridSplitter Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Stretch" Width="4" Background="#66000000" ResizeBehavior="PreviousAndNext" DragCompleted="HeaderColumnSplitter_DragCompleted"/>
+            <GridSplitter Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Stretch" Width="4" Background="#66000000" ResizeBehavior="PreviousAndNext" DragCompleted="HeaderColumnSplitter_DragCompleted"/>
+            <GridSplitter Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Stretch" Width="4" Background="#66000000" ResizeBehavior="PreviousAndNext" DragCompleted="HeaderColumnSplitter_DragCompleted"/>
+            <GridSplitter Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Stretch" Width="4" Background="#66000000" ResizeBehavior="PreviousAndNext" DragCompleted="HeaderColumnSplitter_DragCompleted"/>
+            <GridSplitter Grid.Column="5" HorizontalAlignment="Right" VerticalAlignment="Stretch" Width="4" Background="#66000000" ResizeBehavior="PreviousAndNext" DragCompleted="HeaderColumnSplitter_DragCompleted"/>
+            <GridSplitter Grid.Column="6" HorizontalAlignment="Right" VerticalAlignment="Stretch" Width="4" Background="#66000000" ResizeBehavior="PreviousAndNext" DragCompleted="HeaderColumnSplitter_DragCompleted"/>
+        </Grid>
+        <ScrollViewer Name="_accountDisplayScrollViewer" Grid.Row="2" Grid.Column="1" VerticalScrollBarVisibility="Auto">
             <StackPanel Name="_accountStackPanel" Grid.Row="1" Grid.Column="1" >
 
             </StackPanel>
         </ScrollViewer>
-        <local:AccountForm x:Name="_accountForm" Grid.Row="1" Grid.Column="1" Visibility="Hidden" Cancel="AccountForm_Cancel" SaveAccount="AccountForm_SaveAccount">
+        <local:AccountForm x:Name="_accountForm" Grid.Row="2" Grid.Column="1" Visibility="Hidden" Cancel="AccountForm_Cancel" SaveAccount="AccountForm_SaveAccount">
         </local:AccountForm>
-        <local:LoginForm x:Name="_loginForm" Grid.Row="1" Grid.Column="1" Visibility="Hidden" Cancel="AccountForm_Cancel" Login="LoginForm_Login">
+        <local:LoginForm x:Name="_loginForm" Grid.Row="2" Grid.Column="1" Visibility="Hidden" Cancel="AccountForm_Cancel" Login="LoginForm_Login">
         </local:LoginForm>
     </Grid>
     <UserControl.Resources>

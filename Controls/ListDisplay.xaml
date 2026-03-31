@@ -5,66 +5,44 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:AruaRoseLoginManager.Controls"
              mc:Ignorable="d" 
-             d:DesignHeight="90" d:DesignWidth="400">
-    <Grid Name="_listDisplayGrid" Background="#EAEAEA" SizeChanged="ListDisplayGrid_SizeChanged">
+             d:DesignHeight="44" d:DesignWidth="1000">
+    <Grid Name="_listDisplayGrid" Background="#EAEAEA" SizeChanged="ListDisplayGrid_SizeChanged" AllowDrop="True" PreviewMouseLeftButtonDown="ListDisplayGrid_PreviewMouseLeftButtonDown" PreviewMouseMove="ListDisplayGrid_PreviewMouseMove" DragOver="ListDisplayGrid_DragOver" Drop="ListDisplayGrid_Drop">
         <Grid.RowDefinitions>
-            <RowDefinition Height="5" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="5" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="80" />
-            <ColumnDefinition Width="*" />
+            <ColumnDefinition x:Name="_col1" Width="2*" />
+            <ColumnDefinition x:Name="_col2" Width="2*" />
+            <ColumnDefinition x:Name="_col3" Width="4*" />
+            <ColumnDefinition x:Name="_col4" Width="70" />
+            <ColumnDefinition x:Name="_col5" Width="70" />
+            <ColumnDefinition x:Name="_col6" Width="80" />
+            <ColumnDefinition x:Name="_col7" Width="35" />
+            <ColumnDefinition x:Name="_col8" Width="35" />
+            <ColumnDefinition Width="0" />
         </Grid.ColumnDefinitions>
-        <Image Name="_emblem" Grid.Row="1" Grid.Column="0" Width="60" Height="60" Source="../Emblems/emblem1.png" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-        <Grid Name="_infoDisplayGrid" Grid.Row="1" Grid.Column="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
+        <Image Name="_emblem" Grid.Row="0" Grid.Column="0" Width="1" Height="1" Visibility="Collapsed" Source="../Emblems/emblem1.png"/>
+        <TextBlock Name="_listItemIdentifier" Grid.Row="0" Grid.Column="0" Text="List Item Identifier" FontSize="14" FontWeight="Bold" Foreground="#222" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="8,0,4,0"/>
+        <Grid Grid.Row="0" Grid.Column="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="35" />
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="75" />
-                <ColumnDefinition Width="35" />
+                <ColumnDefinition Width="20" />
             </Grid.ColumnDefinitions>
-            <Button Name="_moveUpButton" Grid.Row="0" Grid.Column="0" Width="25" Height="25" Click="MoveUpButton_Click">
-                <Image Source="../Assets/chevron-up.png" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2"/>
-            </Button>
-            <Button Name="_moveDownButton" Grid.Row="1" Grid.Column="0" Width="25" Height="25" Click="MoveDownButton_Click">
-                <Image Source="../Assets/chevron-down.png" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2"/>
-            </Button>
-            <Grid Grid.Row="0" Grid.Column="1">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="20" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Name="_listItemIdentifier" Grid.Row="0" Grid.Column="0" Text="List Item Identifier" FontSize="16" FontWeight="Bold" Foreground="#222" Margin="5 0 0 0"/>
-                <Image Name="_allInfoIncluded" Grid.Row="0" Grid.Column="1" Source="../Assets/check-icon.png"/>
-            </Grid>
-            <Grid Grid.Row="1" Grid.Column="1">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Name="_listItemDescription" Grid.Row="0" Grid.Column="0" Text="Description" TextTrimming="CharacterEllipsis" FontSize="12" FontWeight="Bold" Foreground="#222" Margin="5 0 0 0"/>
-                <TextBlock Name="_listItemDetails" Grid.Row="1" Grid.Column="0" Text="Detail, Detail, Detail, Detail, Detail" TextTrimming="CharacterEllipsis" FontSize="12" FontWeight="Bold" Foreground="#222" Margin="5 0 0 0"/>
-            </Grid>
-            <Button Name="_aruaLoginButton" Grid.Row="0" Grid.Column="2" Width="65" Height="25" Content="Arua" FontWeight="Normal" Click="AruaLoginButton_Click"/>
-            <Button Name="_classicLoginButton" Grid.Row="1" Grid.Column="2" Width="65" Height="25" Content="Classic" FontWeight="Normal" Click="ClassicLoginButton_Click"/>
-            <Button Name="_deleteButton" Grid.Row="0" Grid.Column="3" Width="25" Height="25" Click="DeleteButton_Click">
-                <Image Source="../Assets/delete-icon.png" Margin="2" />
-            </Button>
-            <Button Name="_editButton" Grid.Row="1" Grid.Column="3" Width="25" Height="25" Click="EditButton_Click">
-                <Image Source="../Assets/edit-icon.png" Margin="2" />
-            </Button>
+            <TextBlock Name="_listItemDescription" Grid.Column="0" Text="Alias" TextTrimming="CharacterEllipsis" FontSize="13" Foreground="#222" VerticalAlignment="Center" Margin="8,0,4,0"/>
+            <Image Name="_allInfoIncluded" Grid.Column="1" Width="16" Height="16" Source="../Assets/check-icon.png" VerticalAlignment="Center"/>
         </Grid>
+        <TextBlock Name="_listItemDetails" Grid.Row="0" Grid.Column="2" Text="Characters" TextTrimming="CharacterEllipsis" FontSize="13" Foreground="#222" VerticalAlignment="Center" Margin="8,0,4,0"/>
+        <Button Name="_aruaLoginButton" Grid.Row="0" Grid.Column="3" Width="65" Height="25" Content="Arua" FontWeight="Normal" Click="AruaLoginButton_Click" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+        <Button Name="_classicLoginButton" Grid.Row="0" Grid.Column="4" Width="65" Height="25" Content="Classic" FontWeight="Normal" Click="ClassicLoginButton_Click" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+        <Button Name="_aruaGuardButton" Grid.Row="0" Grid.Column="5" Width="74" Height="25" Content="AruaGuard" Click="AruaGuardButton_Click" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="11" FontWeight="Normal"/>
+        <Button Name="_editButton" Grid.Row="0" Grid.Column="6" Width="25" Height="25" Click="EditButton_Click" VerticalAlignment="Center" HorizontalAlignment="Center">
+            <Image Source="../Assets/edit-icon.png" Margin="2" />
+        </Button>
+        <Button Name="_deleteButton" Grid.Row="0" Grid.Column="7" Width="25" Height="25" Click="DeleteButton_Click" VerticalAlignment="Center" HorizontalAlignment="Center">
+            <Image Source="../Assets/delete-icon.png" Margin="2" />
+        </Button>
+        <Button Name="_moveUpButton" Grid.Row="0" Grid.Column="8" Width="1" Height="1" Visibility="Collapsed" Click="MoveUpButton_Click"/>
+        <Button Name="_moveDownButton" Grid.Row="0" Grid.Column="9" Width="1" Height="1" Visibility="Collapsed" Click="MoveDownButton_Click"/>
     </Grid>
     <UserControl.Resources>
         <ResourceDictionary>

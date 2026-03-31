@@ -49,10 +49,12 @@ namespace AruaRoseLoginManager.DAL
         /// <summary>
         /// Saves all the accounts to the datastore
         /// </summary>
-        /// <param name="filePath">The file path of the ROSE directory</param>
+        /// <param name="filePath1">Folder path for install location 1</param>
+        /// <param name="filePath2">Folder path for install location 2</param>
+        /// <param name="filePath3">Folder path for install location 3</param>
         /// <param name="runAdAdmin">Whether or not to run as admin</param>
         /// <param name="allAccounts">The list of accounts to save</param>
         /// <param name="allParties">The list of parties to save</param>
-        void SaveManagerData(string filePath, bool runAdAdmin, WindowSize size, List<Account> allAccounts, List<Party> allParties);
+        void SaveManagerData(string filePath1, string filePath2, string filePath3, bool runAdAdmin, WindowSize size, List<Account> allAccounts, List<Party> allParties);
     }
 }

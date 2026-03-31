@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:AruaRoseLoginManager.Controls"
              mc:Ignorable="d" 
-             d:DesignHeight="525" d:DesignWidth="400">
+             d:DesignHeight="525" d:DesignWidth="600">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="25" />
@@ -44,12 +44,46 @@
         </Button>
         <Label Grid.Row="6" Content="Party Members" Grid.ColumnSpan="2" />
         <Label Name="_partyMembersError" Grid.Row="6" Content="At least 2 party members are required" HorizontalContentAlignment="Right" Foreground="Red" Visibility="Hidden" Grid.ColumnSpan="2"/>
-        <Label Grid.Row="7" Content="None" Grid.ColumnSpan="2" FontStyle="Italic"/>
-        <ScrollViewer Name="_partyListScrollViewer" Grid.Row="7" Grid.RowSpan="9" Grid.ColumnSpan="2" VerticalScrollBarVisibility="Auto">
-            <StackPanel Name="_partyListStackPanel">
+        <Grid Grid.Row="7" Grid.RowSpan="9" Grid.ColumnSpan="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-            </StackPanel>
-        </ScrollViewer>
+            <Grid Name="_partyMembersHeader" Grid.Row="0" Margin="0,0,0,2" Background="#EEE">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="60"/>
+                    <ColumnDefinition Width="5"/>
+                    <ColumnDefinition Width="60"/>
+                    <ColumnDefinition Width="90"/>
+                    <ColumnDefinition Width="55"/>
+                    <ColumnDefinition Width="55"/>
+                    <ColumnDefinition Width="45"/>
+                    <ColumnDefinition Width="70"/>
+                    <ColumnDefinition Width="30"/>
+                </Grid.ColumnDefinitions>
+                <Label Grid.Column="0" Content="Member" FontWeight="Bold" Foreground="Black" Padding="2,0"/>
+                <Label Grid.Column="1" Content="Location" FontWeight="Bold" Foreground="Black" Padding="2,0"/>
+                <Label Grid.Column="2" Content="Width" FontWeight="Bold" Foreground="Black" Padding="2,0"/>
+                <Label Grid.Column="4" Content="Height" FontWeight="Bold" Foreground="Black" Padding="2,0"/>
+                <Label Grid.Column="5" Content="" FontWeight="Bold" Foreground="Black" Padding="2,0"/>
+                <Label Grid.Column="6" Content="X" FontWeight="Bold" Foreground="Black" Padding="2,0"/>
+                <Label Grid.Column="7" Content="Y" FontWeight="Bold" Foreground="Black" Padding="2,0"/>
+                <Label Grid.Column="8" Content="Set" FontWeight="Bold" Foreground="Black" Padding="2,0"/>
+                <Label Grid.Column="9" Content="Monitor" FontWeight="Bold" Foreground="Black" Padding="2,0"/>
+            </Grid>
+
+            <Grid Grid.Row="1">
+                <Label Name="_noneLabel" Content="None" FontStyle="Italic"/>
+                <ScrollViewer Name="_partyListScrollViewer" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Name="_partyListStackPanel">
+
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
         <Grid Grid.Row="17" Grid.ColumnSpan="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />

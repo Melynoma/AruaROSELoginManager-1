@@ -15,6 +15,7 @@ namespace AruaRoseLoginManager.Enum
         Accounts,
         Parties,
         Options,
+        Patch,
         Info
     }
 }
