@@ -29,7 +29,7 @@
             <local:TabButton Grid.Column="0" x:Name="_accountsButton" Click="AccountsButton_Click" Style="{StaticResource ButtonStyles}" ImageSource="/Assets/accounts-icon.png" Text="_Accounts" />
             <local:TabButton Grid.Column="1" x:Name="_partiesButton" Click="PartiesButton_Click" Style="{StaticResource ButtonStyles}" ImageSource="/Assets/parties-icon.png" Text="_Parties" />
             <local:TabButton Grid.Column="2" x:Name="_optionssButton" Click="OptionsButton_Click" Style="{StaticResource ButtonStyles}" ImageSource="/Assets/settings-icon.png" Text="_Options" />
-            <local:TabButton Grid.Column="3" x:Name="_patchButton" Click="PatchButton_Click" Style="{StaticResource ButtonStyles}" ImageSource="/Assets/settings-icon.png" Text="_Patch" />
+            <local:TabButton Grid.Column="3" x:Name="_patchButton" Click="PatchButton_Click" Style="{StaticResource ButtonStyles}" ImageSource="/Assets/patch-icon.png" Text="_Patch" />
             <local:TabButton Grid.Column="4" x:Name="_infoButton" Click="InfoButton_Click" Style="{StaticResource ButtonStyles}" ImageSource="/Assets/info-icon.png" Text="_Info" />
         </Grid>
         <local:AccountDisplay x:Name="_accountDisplay" Grid.Row="1" Visibility="Visible"/>

@@ -30,6 +30,11 @@ namespace AruaRoseLoginManager.Data
         public string Description { get; private set; }
 
         /// <summary>
+        /// The previous name of the party before a rename; null if name has not changed.
+        /// </summary>
+        public string OriginalName { get; set; }
+
+        /// <summary>
         /// Constructor
         /// </summary>
         /// <param name="name">Party name</param>

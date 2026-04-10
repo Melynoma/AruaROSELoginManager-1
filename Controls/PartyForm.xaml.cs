@@ -46,6 +46,11 @@ namespace AruaRoseLoginManager.Controls
         private WindowSize _defaultWindowSize;
 
         /// <summary>
+        /// The original party name when editing an existing party; null when creating a new party.
+        /// </summary>
+        private string _originalPartyName;
+
+        /// <summary>
         /// Event to raise when the cancel button is clicked
         /// </summary>
         [Browsable(true)]
@@ -83,8 +88,8 @@ namespace AruaRoseLoginManager.Controls
         /// <param name="party">Party info</param>
         public void PopulateFields(Party party)
         {
+            _originalPartyName = party.Name;
             _partyNameTextBox.Text = party.Name;
-            _partyNameTextBox.IsEnabled = false;
             _descriptionTextBox.Text = party.Description;
             foreach(string member in party.Accounts)
             {
@@ -246,7 +251,7 @@ namespace AruaRoseLoginManager.Controls
         /// </summary>
         public void ClearFields()
         {
-            _partyNameTextBox.IsEnabled = true;
+            _originalPartyName = null;
             _partyNameTextBox.Clear();
             _descriptionTextBox.Clear();
             _selectedMembers.Clear();
@@ -289,14 +294,13 @@ namespace AruaRoseLoginManager.Controls
 
             if (sender != null && SaveParty != null)
             {
-                DataEventArgs<Party> args = new DataEventArgs<Party>()
-                {
-                    Data = new Party(
-                        _partyNameTextBox.Text,
-                        new List<string>(_selectedMembers),
-                        _descriptionTextBox.Text
-                    )
-                };
+                Party party = new Party(
+                    _partyNameTextBox.Text,
+                    new List<string>(_selectedMembers),
+                    _descriptionTextBox.Text
+                );
+                party.OriginalName = _originalPartyName;
+                DataEventArgs<Party> args = new DataEventArgs<Party>() { Data = party };
                 ClearFields();
                 SaveParty(this, args);
             }

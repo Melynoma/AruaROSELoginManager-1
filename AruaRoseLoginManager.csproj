@@ -269,6 +269,7 @@
     <Resource Include="Assets\accounts-icon.png" />
     <Resource Include="Assets\info-icon.png" />
     <Resource Include="Assets\parties-icon.png" />
+    <Resource Include="Assets\patch-icon.png" />
     <Resource Include="Assets\settings-icon.png" />
   </ItemGroup>
   <ItemGroup>

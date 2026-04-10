@@ -659,15 +659,35 @@ namespace AruaRoseLoginManager.Controllers
         /// <param name="e">Event args</param>
         private void AccountManagerPanel_UpdatePartyRequest(object sender, DataEventArgs<Party> e)
         {
-            if (
-                sender != null
-                && !string.IsNullOrWhiteSpace(e.Data.Name)
-                && _partyList.ContainsKey(e.Data.Name)
-            )
+            if (sender == null || e?.Data == null || string.IsNullOrWhiteSpace(e.Data.Name))
             {
-                _partyList[e.Data.Name] = e.Data;
-                RefreshPartyList();
+                return;
             }
+
+            string lookupKey = e.Data.OriginalName ?? e.Data.Name;
+
+            if (!_partyList.ContainsKey(lookupKey))
+            {
+                return;
+            }
+
+            bool isRename = e.Data.OriginalName != null && e.Data.Name != e.Data.OriginalName;
+            if (isRename && _partyList.ContainsKey(e.Data.Name))
+            {
+                _viewPanel.ShowMessageBox("A party with this name already exists.");
+                return;
+            }
+
+            _partyList.Remove(lookupKey);
+            _partyList.Add(e.Data.Name, e.Data);
+
+            int orderIndex = _partyOrder.IndexOf(lookupKey);
+            if (orderIndex >= 0)
+            {
+                _partyOrder[orderIndex] = e.Data.Name;
+            }
+
+            RefreshPartyList();
         }
 
         /// <summary>
