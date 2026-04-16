@@ -63,6 +63,12 @@ namespace AruaRoseLoginManager.Controls
         public event EventHandler<DataEventArgs<Party>> SaveParty;
 
         /// <summary>
+        /// Event to raise when the delete button is clicked
+        /// </summary>
+        [Browsable(true)]
+        public event EventHandler<ListEventArgs> DeleteParty;
+
+        /// <summary>
         /// Constructor
         /// </summary>
         public PartyForm()
@@ -257,6 +263,34 @@ namespace AruaRoseLoginManager.Controls
             _selectedMembers.Clear();
             _partyListStackPanel.Children.Clear();
             _noneLabel.Visibility = Visibility.Visible;
+            SetEditMode(false);
+        }
+
+        /// <summary>
+        /// Sets whether the form is editing an existing party.
+        /// </summary>
+        /// <param name="isEdit">True for editing, false for new party</param>
+        public void SetEditMode(bool isEdit)
+        {
+            _deletePartyButton.Visibility = isEdit ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>
+        /// Event handler for clicking the delete party button
+        /// </summary>
+        private void DeletePartyButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender != null && DeleteParty != null)
+            {
+                string partyId = !string.IsNullOrWhiteSpace(_originalPartyName)
+                    ? _originalPartyName
+                    : _partyNameTextBox.Text;
+
+                if (!string.IsNullOrWhiteSpace(partyId))
+                {
+                    DeleteParty(this, new ListEventArgs() { Id = partyId });
+                }
+            }
         }
 
         /// <summary>
@@ -327,7 +361,7 @@ namespace AruaRoseLoginManager.Controls
                 _partyNameError.Visibility = Visibility.Visible;
                 return false;
             }
-            else if (_selectedMembers.Count < 2)
+            else if (_selectedMembers.Count < 1)
             {
                 _partyNameError.Visibility = Visibility.Hidden;
                 _partyMembersError.Visibility = Visibility.Visible;

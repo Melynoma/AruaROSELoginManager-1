@@ -189,6 +189,7 @@ namespace AruaRoseLoginManager.Controls
         public void Prompt(IEnumerable<string> accounts)
         {
             _partyForm.ClearFields();
+            _partyForm.SetEditMode(false);
             _partyForm.PopulateAccounts(accounts);
             SwitchPanels(PanelMode.New);
         }
@@ -202,6 +203,7 @@ namespace AruaRoseLoginManager.Controls
         {
             _partyForm.ClearFields();
             _partyForm.PopulateFields(info);
+            _partyForm.SetEditMode(true);
             _partyForm.PopulateAccounts(accounts);
             SwitchPanels(PanelMode.Edit);
         }
@@ -214,6 +216,7 @@ namespace AruaRoseLoginManager.Controls
         {
             _partyForm.ClearFields();
             _partyForm.SetDefaultWindowSize(WindowSize.Default);
+            _partyForm.SetEditMode(false);
             _partyForm.PopulateAccountsWithCharacters(accounts);
             SwitchPanels(PanelMode.New);
         }
@@ -227,6 +230,7 @@ namespace AruaRoseLoginManager.Controls
         {
             _partyForm.ClearFields();
             _partyForm.SetDefaultWindowSize(sizeDefaults ?? WindowSize.Default);
+            _partyForm.SetEditMode(false);
             _partyForm.PopulateAccountsWithCharacters(accounts);
             SwitchPanels(PanelMode.New);
         }
@@ -241,6 +245,7 @@ namespace AruaRoseLoginManager.Controls
             _partyForm.ClearFields();
             _partyForm.SetDefaultWindowSize(WindowSize.Default);
             _partyForm.PopulateFields(info);
+            _partyForm.SetEditMode(true);
             _partyForm.PopulateAccountsWithCharacters(accounts);
             SwitchPanels(PanelMode.Edit);
         }
@@ -256,6 +261,7 @@ namespace AruaRoseLoginManager.Controls
             _partyForm.ClearFields();
             _partyForm.SetDefaultWindowSize(sizeDefaults ?? WindowSize.Default);
             _partyForm.PopulateFields(info);
+            _partyForm.SetEditMode(true);
             _partyForm.PopulateAccountsWithCharacters(accounts);
             SwitchPanels(PanelMode.Edit);
         }
@@ -365,6 +371,18 @@ namespace AruaRoseLoginManager.Controls
         private void PartyForm_Cancel(object sender, EventArgs e)
         {
             SwitchPanels(PanelMode.Select);
+        }
+
+        /// <summary>
+        /// Event handler for clicking the delete button on the party form
+        /// </summary>
+        private void PartyForm_DeleteParty(object sender, ListEventArgs e)
+        {
+            if (sender != null && DeleteRequest != null)
+            {
+                DeleteRequest(sender, e);
+                SwitchPanels(PanelMode.Select);
+            }
         }
 
         /// <summary>
