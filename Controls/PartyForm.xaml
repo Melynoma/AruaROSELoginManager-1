@@ -52,7 +52,7 @@
 
             <Grid Name="_partyMembersHeader" Grid.Row="0" Margin="0,0,0,2" Background="#EEE">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="250" MaxWidth="250"/>
                     <ColumnDefinition Width="100"/>
                     <ColumnDefinition Width="60"/>
                     <ColumnDefinition Width="5"/>
@@ -68,7 +68,7 @@
                 <Label Grid.Column="1" Content="Location" FontWeight="Bold" Foreground="Black" Padding="2,0"/>
                 <Label Grid.Column="2" Content="Width" FontWeight="Bold" Foreground="Black" Padding="2,0"/>
                 <Label Grid.Column="4" Content="Height" FontWeight="Bold" Foreground="Black" Padding="2,0"/>
-                <Label Grid.Column="5" Content="" FontWeight="Bold" Foreground="Black" Padding="2,0"/>
+                <Label Grid.Column="5" Content="Fullscreen" FontWeight="Bold" Foreground="Black" Padding="2,0"/>
                 <Label Grid.Column="6" Content="X" FontWeight="Bold" Foreground="Black" Padding="2,0"/>
                 <Label Grid.Column="7" Content="Y" FontWeight="Bold" Foreground="Black" Padding="2,0"/>
                 <Label Grid.Column="8" Content="Set" FontWeight="Bold" Foreground="Black" Padding="2,0"/>

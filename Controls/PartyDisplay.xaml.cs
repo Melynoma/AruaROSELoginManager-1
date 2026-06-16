@@ -45,12 +45,27 @@ namespace AruaRoseLoginManager.Controls
         private double[] _minColumnWidths = new double[8];
 
         /// <summary>
+        /// Reference to the manager panel for accessing settings
+        /// </summary>
+        private IManagerPanel _managerPanel;
+
+        /// <summary>
         /// Constructor
         /// </summary>
         public PartyDisplay()
         {
             InitializeComponent();
             InitializeColumnWidths();
+        }
+
+        /// <summary>
+        /// Sets the manager panel reference for accessing game settings
+        /// </summary>
+        /// <param name="managerPanel">The manager panel</param>
+        public void SetManagerPanel(IManagerPanel managerPanel)
+        {
+            _managerPanel = managerPanel;
+            _partyForm.SetManagerPanel(managerPanel);
         }
 
         /// <summary>
@@ -244,9 +259,9 @@ namespace AruaRoseLoginManager.Controls
         {
             _partyForm.ClearFields();
             _partyForm.SetDefaultWindowSize(WindowSize.Default);
+            _partyForm.PopulateAccountsWithCharacters(accounts);
             _partyForm.PopulateFields(info);
             _partyForm.SetEditMode(true);
-            _partyForm.PopulateAccountsWithCharacters(accounts);
             SwitchPanels(PanelMode.Edit);
         }
 
@@ -260,9 +275,9 @@ namespace AruaRoseLoginManager.Controls
         {
             _partyForm.ClearFields();
             _partyForm.SetDefaultWindowSize(sizeDefaults ?? WindowSize.Default);
+            _partyForm.PopulateAccountsWithCharacters(accounts);
             _partyForm.PopulateFields(info);
             _partyForm.SetEditMode(true);
-            _partyForm.PopulateAccountsWithCharacters(accounts);
             SwitchPanels(PanelMode.Edit);
         }
 
@@ -586,24 +601,20 @@ namespace AruaRoseLoginManager.Controls
                     int.TryParse(parts[3], out height);
                 }
 
-                if (parts.Length >= 5)
-                {
-                    bool.TryParse(parts[4], out isFullscreen);
-                }
-
-                if (parts.Length >= 6)
-                {
-                    int.TryParse(parts[5], out posX);
-                }
-
-                if (parts.Length >= 7)
-                {
-                    int.TryParse(parts[6], out posY);
-                }
-
                 if (parts.Length >= 8)
                 {
+                    // New 8-part format: name|location|width|height|fullscreen|x|y|monitor
+                    bool.TryParse(parts[4], out isFullscreen);
+                    int.TryParse(parts[5], out posX);
+                    int.TryParse(parts[6], out posY);
                     int.TryParse(parts[7], out monitor);
+                }
+                else if (parts.Length >= 7)
+                {
+                    // Old 7-part format: name|location|width|height|x|y|monitor
+                    int.TryParse(parts[4], out posX);
+                    int.TryParse(parts[5], out posY);
+                    int.TryParse(parts[6], out monitor);
                 }
 
                 string modeText = isFullscreen ? "Fullscreen" : $"{width}x{height}";

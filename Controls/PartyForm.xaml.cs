@@ -10,8 +10,10 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Runtime.InteropServices;
 
 using AruaRoseLoginManager.Data;
+using AruaRoseLoginManager.Helpers;
 
 namespace AruaRoseLoginManager.Controls
 {
@@ -20,11 +22,52 @@ namespace AruaRoseLoginManager.Controls
     /// </summary>
     public partial class PartyForm : UserControl
     {
+        // P/Invoke declarations for global mouse hook
+        private const int WH_MOUSE_LL = 14;
+        private const int WM_LBUTTONDOWN = 0x0201;
+        private IntPtr _hookHandle = IntPtr.Zero;
+        private LowLevelMouseProc _mouseDelegate = null;
+        private TextBox _captureXTextBox = null;
+        private TextBox _captureYTextBox = null;
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr GetModuleHandle(string lpModuleName);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct POINT
+        {
+            public int x;
+            public int y;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MSLLHOOKSTRUCT
+        {
+            public POINT pt;
+            public uint mouseData;
+            public uint flags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        public delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
+
         private List<string> _selectedMembers;
         private ObservableCollection<string> _availableAccounts;
         private Dictionary<string, Account> _availableAccountObjects;
         private WindowSize _defaultWindowSize;
         private string _originalPartyName;
+        private IManagerPanel _managerPanel;
 
         [Browsable(true)]
         public event EventHandler Cancel;
@@ -52,8 +95,29 @@ namespace AruaRoseLoginManager.Controls
             {
                 string normalizedMember = NormalizeMemberFormat(member);
                 _selectedMembers.Add(normalizedMember);
-                AddMemberToList(normalizedMember);
+                string charName = normalizedMember.Split('|')[0];
+                List<string> accountCharacters = FindCharactersForMember(charName);
+                AddMemberToList(normalizedMember, accountCharacters.Count > 0 ? accountCharacters : null);
             }
+        }
+
+        private List<string> FindCharactersForMember(string characterName)
+        {
+            foreach (Account account in _availableAccountObjects.Values)
+            {
+                if (account?.Characters == null) continue;
+                foreach (var character in account.Characters)
+                {
+                    if (character?.Name == characterName)
+                    {
+                        return account.Characters
+                            .Where(c => c != null && !string.IsNullOrWhiteSpace(c.Name))
+                            .Select(c => c.Name)
+                            .ToList();
+                    }
+                }
+            }
+            return new List<string>();
         }
 
         private string NormalizeMemberFormat(string member)
@@ -64,9 +128,28 @@ namespace AruaRoseLoginManager.Controls
             int location = 1;
             int width = 1024;
             int height = 768;
+            bool fullscreen = false;
+            int x = 0;
+            int y = 0;
+            int monitor = 0;
             if (parts.Length >= 2 && int.TryParse(parts[1], out int loc)) location = loc;
-            if (parts.Length >= 4) int.TryParse(parts[2], out width); int.TryParse(parts[3], out height);
-            return $"{characterName}|{location}|{width}|{height}";
+            if (parts.Length >= 4) { int.TryParse(parts[2], out width); int.TryParse(parts[3], out height); }
+            if (parts.Length >= 8)
+            {
+                // New 8-part format: name|location|width|height|fullscreen|x|y|monitor
+                bool.TryParse(parts[4], out fullscreen);
+                int.TryParse(parts[5], out x);
+                int.TryParse(parts[6], out y);
+                int.TryParse(parts[7], out monitor);
+            }
+            else if (parts.Length >= 7)
+            {
+                // Old 7-part format: name|location|width|height|x|y|monitor
+                int.TryParse(parts[4], out x);
+                int.TryParse(parts[5], out y);
+                int.TryParse(parts[6], out monitor);
+            }
+            return $"{characterName}|{location}|{width}|{height}|{fullscreen}|{x}|{y}|{monitor}";
         }
 
         public void PopulateAccounts(IEnumerable<string> availableAccounts)
@@ -103,12 +186,94 @@ namespace AruaRoseLoginManager.Controls
             _defaultWindowSize = sizeDefaults ?? WindowSize.Default;
         }
 
+        public void SetManagerPanel(IManagerPanel managerPanel)
+        {
+            _managerPanel = managerPanel;
+        }
+
         public void SetEditMode(bool isEdit)
         {
             _deletePartyButton.Visibility = isEdit ? Visibility.Visible : Visibility.Collapsed;
         }
 
         public void FocusPrimary() => _partyNameTextBox.Focus();
+
+        private int GetDefaultGameWidth(int location)
+        {
+            if (_managerPanel != null)
+            {
+                if (location == 1)
+                    return _managerPanel.DefaultGameWidth;
+                else if (location == 2)
+                    return _managerPanel.DefaultGameWidth2;
+                else if (location == 3)
+                    return _managerPanel.DefaultGameWidth3;
+            }
+            else if (_defaultWindowSize != null)
+            {
+                if (location == 1)
+                    return _defaultWindowSize.GameWidth1;
+                else if (location == 2)
+                    return _defaultWindowSize.GameWidth2;
+                else if (location == 3)
+                    return _defaultWindowSize.GameWidth3;
+            }
+            return 1024;
+        }
+
+        private int GetDefaultGameHeight(int location)
+        {
+            if (_managerPanel != null)
+            {
+                if (location == 1)
+                    return _managerPanel.DefaultGameHeight;
+                else if (location == 2)
+                    return _managerPanel.DefaultGameHeight2;
+                else if (location == 3)
+                    return _managerPanel.DefaultGameHeight3;
+            }
+            else if (_defaultWindowSize != null)
+            {
+                if (location == 1)
+                    return _defaultWindowSize.GameHeight1;
+                else if (location == 2)
+                    return _defaultWindowSize.GameHeight2;
+                else if (location == 3)
+                    return _defaultWindowSize.GameHeight3;
+            }
+            return 768;
+        }
+
+        private void CaptureScreenCoordinates(TextBox xTextBox, TextBox yTextBox)
+        {
+            _captureXTextBox = xTextBox;
+            _captureYTextBox = yTextBox;
+
+            _mouseDelegate = MouseHookCallback;
+            IntPtr moduleHandle = GetModuleHandle(null);
+            _hookHandle = SetWindowsHookEx(WH_MOUSE_LL, _mouseDelegate, moduleHandle, 0);
+
+            MessageBox.Show("Click on the screen location to capture coordinates.\nPress Escape to cancel.", "Capture Coordinates");
+
+            UnhookWindowsHookEx(_hookHandle);
+            _hookHandle = IntPtr.Zero;
+        }
+
+        private IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            if (nCode >= 0 && wParam == (IntPtr)WM_LBUTTONDOWN)
+            {
+                MSLLHOOKSTRUCT hookStruct = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
+                _captureXTextBox.Text = hookStruct.pt.x.ToString();
+                _captureYTextBox.Text = hookStruct.pt.y.ToString();
+
+                // Unhook after capturing one click
+                UnhookWindowsHookEx(_hookHandle);
+                _hookHandle = IntPtr.Zero;
+            }
+
+            return CallNextHookEx(_hookHandle, nCode, wParam, lParam);
+        }
 
         private void CancelButton_Click(object sender, EventArgs e)
         {
@@ -156,22 +321,43 @@ namespace AruaRoseLoginManager.Controls
             int installLocation = 1;
             int gameWidth = 1024;
             int gameHeight = 768;
+            bool isFullscreen = false;
+            int gameX = 0;
+            int gameY = 0;
+            int monitor = 0;
 
             if (memberInfo.Contains("|"))
             {
                 string[] parts = memberInfo.Split('|');
                 characterName = parts[0];
                 if (parts.Length >= 2 && int.TryParse(parts[1], out int location)) installLocation = location;
-                if (parts.Length >= 4) int.TryParse(parts[2], out gameWidth); int.TryParse(parts[3], out gameHeight);
+                if (parts.Length >= 4) { int.TryParse(parts[2], out gameWidth); int.TryParse(parts[3], out gameHeight); }
+                if (parts.Length >= 8)
+                {
+                    bool.TryParse(parts[4], out isFullscreen);
+                    int.TryParse(parts[5], out gameX);
+                    int.TryParse(parts[6], out gameY);
+                    int.TryParse(parts[7], out monitor);
+                }
+                else if (parts.Length >= 7)
+                {
+                    int.TryParse(parts[4], out gameX);
+                    int.TryParse(parts[5], out gameY);
+                    int.TryParse(parts[6], out monitor);
+                }
             }
 
             Grid memberGrid = new Grid();
-            memberGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Star) });
-            memberGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(50) });
+            memberGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(250) });
             memberGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(100) });
             memberGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(60) });
             memberGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(5) });
             memberGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(60) });
+            memberGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(90) });
+            memberGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(55) });
+            memberGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(55) });
+            memberGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(45) });
+            memberGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(70) });
             memberGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(30) });
 
             ComboBox charCombo = new ComboBox() { Margin = new Thickness(2), VerticalAlignment = VerticalAlignment.Center };
@@ -187,30 +373,82 @@ namespace AruaRoseLoginManager.Controls
             Grid.SetColumn(charCombo, 0);
             memberGrid.Children.Add(charCombo);
 
-            Button editButton = new Button() { Content = "Edit", Margin = new Thickness(2) };
-            Grid.SetColumn(editButton, 1);
-            memberGrid.Children.Add(editButton);
-
             ComboBox locationComboBox = new ComboBox() { SelectedIndex = installLocation - 1, Margin = new Thickness(2) };
             locationComboBox.Items.Add("Location 1");
             locationComboBox.Items.Add("Location 2");
             locationComboBox.Items.Add("Location 3");
-            Grid.SetColumn(locationComboBox, 2);
+            Grid.SetColumn(locationComboBox, 1);
             memberGrid.Children.Add(locationComboBox);
 
-            TextBox widthTextBox = new TextBox() { Text = gameWidth.ToString(), Margin = new Thickness(2), Width = 55 };
-            Grid.SetColumn(widthTextBox, 3);
+            TextBox widthTextBox = new TextBox() { Text = gameWidth.ToString(), Margin = new Thickness(2), IsEnabled = !isFullscreen };
+            Grid.SetColumn(widthTextBox, 2);
             memberGrid.Children.Add(widthTextBox);
 
-            TextBox heightTextBox = new TextBox() { Text = gameHeight.ToString(), Margin = new Thickness(2), Width = 55 };
-            Grid.SetColumn(heightTextBox, 5);
+            TextBox heightTextBox = new TextBox() { Text = gameHeight.ToString(), Margin = new Thickness(2), IsEnabled = !isFullscreen };
+            Grid.SetColumn(heightTextBox, 4);
             memberGrid.Children.Add(heightTextBox);
 
+            CheckBox fullscreenCheckBox = new CheckBox() { Content = "Fullscreen", IsChecked = isFullscreen, Margin = new Thickness(4, 0, 2, 0), VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetColumn(fullscreenCheckBox, 5);
+            memberGrid.Children.Add(fullscreenCheckBox);
+
+            // Column 6: "x" flag label + X coordinate textbox
+            Grid xGrid = new Grid();
+            xGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(12) });
+            xGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Star) });
+            Label xLabel = new Label() { Content = "x", Padding = new Thickness(0, 2, 1, 2), VerticalContentAlignment = VerticalAlignment.Center, FontSize = 9 };
+            Grid.SetColumn(xLabel, 0);
+            xGrid.Children.Add(xLabel);
+            TextBox xTextBox = new TextBox() { Text = gameX.ToString(), Margin = new Thickness(0, 2, 2, 2), IsEnabled = !isFullscreen };
+            Grid.SetColumn(xTextBox, 1);
+            xGrid.Children.Add(xTextBox);
+            Grid.SetColumn(xGrid, 6);
+            memberGrid.Children.Add(xGrid);
+
+            // Column 7: "y" flag label + Y coordinate textbox
+            Grid yGrid = new Grid();
+            yGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(12) });
+            yGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Star) });
+            Label yLabel = new Label() { Content = "y", Padding = new Thickness(0, 2, 1, 2), VerticalContentAlignment = VerticalAlignment.Center, FontSize = 9 };
+            Grid.SetColumn(yLabel, 0);
+            yGrid.Children.Add(yLabel);
+            TextBox yTextBox = new TextBox() { Text = gameY.ToString(), Margin = new Thickness(0, 2, 2, 2), IsEnabled = !isFullscreen };
+            Grid.SetColumn(yTextBox, 1);
+            yGrid.Children.Add(yTextBox);
+            Grid.SetColumn(yGrid, 7);
+            memberGrid.Children.Add(yGrid);
+
+            Button setButton = new Button() { Content = "Set", Margin = new Thickness(2), IsEnabled = !isFullscreen };
+            Grid.SetColumn(setButton, 8);
+            memberGrid.Children.Add(setButton);
+
+            setButton.Click += (sender, e) => CaptureScreenCoordinates(xTextBox, yTextBox);
+
+            ComboBox monitorComboBox = new ComboBox() { SelectedIndex = monitor, Margin = new Thickness(2) };
+            monitorComboBox.Items.Add("0");
+            monitorComboBox.Items.Add("1");
+            Grid.SetColumn(monitorComboBox, 9);
+            memberGrid.Children.Add(monitorComboBox);
+
             Button deleteButton = new Button() { Content = "X", Width = 25, Height = 25, Margin = new Thickness(2) };
-            Grid.SetColumn(deleteButton, 6);
+            Grid.SetColumn(deleteButton, 10);
             memberGrid.Children.Add(deleteButton);
 
             int memberIndex = _selectedMembers.Count - 1;
+
+            void RebuildMember()
+            {
+                if (memberIndex < 0 || memberIndex >= _selectedMembers.Count) return;
+                string name = _selectedMembers[memberIndex].Split('|')[0];
+                int loc = locationComboBox.SelectedIndex + 1;
+                int w = int.TryParse(widthTextBox.Text, out int ww) ? ww : 1024;
+                int h = int.TryParse(heightTextBox.Text, out int hh) ? hh : 768;
+                bool fs = fullscreenCheckBox.IsChecked == true;
+                int cx = int.TryParse(xTextBox.Text, out int xx) ? xx : 0;
+                int cy = int.TryParse(yTextBox.Text, out int yy) ? yy : 0;
+                int mon = monitorComboBox.SelectedIndex >= 0 ? monitorComboBox.SelectedIndex : 0;
+                _selectedMembers[memberIndex] = $"{name}|{loc}|{w}|{h}|{fs}|{cx}|{cy}|{mon}";
+            }
 
             charCombo.SelectionChanged += (s, e) =>
             {
@@ -229,36 +467,39 @@ namespace AruaRoseLoginManager.Controls
                 if (locationComboBox.SelectedIndex >= 0 && memberIndex >= 0 && memberIndex < _selectedMembers.Count)
                 {
                     int newLocation = locationComboBox.SelectedIndex + 1;
-                    int currentWidth = int.TryParse(widthTextBox.Text, out int w) ? w : 1024;
-                    int currentHeight = int.TryParse(heightTextBox.Text, out int h) ? h : 768;
-                    string newMemberInfo = $"{_selectedMembers[memberIndex].Split('|')[0]}|{newLocation}|{currentWidth}|{currentHeight}";
-                    _selectedMembers[memberIndex] = newMemberInfo;
+                    int defaultWidth = GetDefaultGameWidth(newLocation);
+                    int defaultHeight = GetDefaultGameHeight(newLocation);
+                    widthTextBox.Text = defaultWidth.ToString();
+                    heightTextBox.Text = defaultHeight.ToString();
+                    RebuildMember();
                 }
             };
 
-            widthTextBox.TextChanged += (sender, e) =>
+            fullscreenCheckBox.Checked += (sender, e) =>
             {
-                if (memberIndex >= 0 && memberIndex < _selectedMembers.Count)
-                {
-                    int currentLocation = locationComboBox.SelectedIndex + 1;
-                    int currentWidth = int.TryParse(widthTextBox.Text, out int w) ? w : 1024;
-                    int currentHeight = int.TryParse(heightTextBox.Text, out int h) ? h : 768;
-                    string newMemberInfo = $"{_selectedMembers[memberIndex].Split('|')[0]}|{currentLocation}|{currentWidth}|{currentHeight}";
-                    _selectedMembers[memberIndex] = newMemberInfo;
-                }
+                widthTextBox.IsEnabled = false;
+                heightTextBox.IsEnabled = false;
+                xTextBox.IsEnabled = false;
+                yTextBox.IsEnabled = false;
+                setButton.IsEnabled = false;
+                RebuildMember();
             };
 
-            heightTextBox.TextChanged += (sender, e) =>
+            fullscreenCheckBox.Unchecked += (sender, e) =>
             {
-                if (memberIndex >= 0 && memberIndex < _selectedMembers.Count)
-                {
-                    int currentLocation = locationComboBox.SelectedIndex + 1;
-                    int currentWidth = int.TryParse(widthTextBox.Text, out int w) ? w : 1024;
-                    int currentHeight = int.TryParse(heightTextBox.Text, out int h) ? h : 768;
-                    string newMemberInfo = $"{_selectedMembers[memberIndex].Split('|')[0]}|{currentLocation}|{currentWidth}|{currentHeight}";
-                    _selectedMembers[memberIndex] = newMemberInfo;
-                }
+                widthTextBox.IsEnabled = true;
+                heightTextBox.IsEnabled = true;
+                xTextBox.IsEnabled = true;
+                yTextBox.IsEnabled = true;
+                setButton.IsEnabled = true;
+                RebuildMember();
             };
+
+            widthTextBox.TextChanged += (sender, e) => RebuildMember();
+            heightTextBox.TextChanged += (sender, e) => RebuildMember();
+            xTextBox.TextChanged += (sender, e) => RebuildMember();
+            yTextBox.TextChanged += (sender, e) => RebuildMember();
+            monitorComboBox.SelectionChanged += (sender, e) => RebuildMember();
 
             deleteButton.Click += (sender, e) =>
             {
@@ -269,6 +510,21 @@ namespace AruaRoseLoginManager.Controls
                 _partyListStackPanel.Children.Clear();
                 foreach (string member in _selectedMembers) AddMemberToList(member);
                 if (_selectedMembers.Count == 0) _noneLabel.Visibility = Visibility.Visible;
+            };
+
+            monitorComboBox.SelectionChanged += (sender, e) =>
+            {
+                if (memberIndex >= 0 && memberIndex < _selectedMembers.Count)
+                {
+                    int currentLocation = locationComboBox.SelectedIndex + 1;
+                    int currentWidth = int.TryParse(widthTextBox.Text, out int w) ? w : 1024;
+                    int currentHeight = int.TryParse(heightTextBox.Text, out int h) ? h : 768;
+                    int currentX = int.TryParse(xTextBox.Text, out int x) ? x : 0;
+                    int currentY = int.TryParse(yTextBox.Text, out int y) ? y : 0;
+                    int currentMonitor = monitorComboBox.SelectedIndex >= 0 ? monitorComboBox.SelectedIndex : 0;
+                    string newMemberInfo = $"{_selectedMembers[memberIndex].Split('|')[0]}|{currentLocation}|{currentWidth}|{currentHeight}|{currentX}|{currentY}|{currentMonitor}";
+                    _selectedMembers[memberIndex] = newMemberInfo;
+                }
             };
 
             if (_partyListStackPanel.Children.Count == 0) _noneLabel.Visibility = Visibility.Hidden;
@@ -287,7 +543,7 @@ namespace AruaRoseLoginManager.Controls
             Character first = selectedAccount.Characters.FirstOrDefault(c => c != null && !string.IsNullOrWhiteSpace(c.Name));
             if (first == null) return;
 
-            string memberInfo = $"{first.Name}|{first.InstallLocation}|1024|768";
+            string memberInfo = $"{first.Name}|{first.InstallLocation}|1024|768|False|0|0|0";
             _selectedMembers.Add(memberInfo);
             AddMemberToList(memberInfo, charNames);
             _availableAccounts.Remove(selectedAccountName);

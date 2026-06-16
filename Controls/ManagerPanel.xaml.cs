@@ -311,6 +311,7 @@ namespace AruaRoseLoginManager.Controls
         {
             InitializeComponent();
             DataContext = this;
+            _partyDisplay.SetManagerPanel(this);
 
             ChangeDisplay(DisplayPanel.Accounts);
         }
