@@ -1,0 +1,29 @@
+<Window x:Class="AruaRoseLoginManager.Controls.PositionPickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        KeyDown="Window_KeyDown"
+        Loaded="Window_Loaded">
+    <Canvas Name="_canvas" Background="Transparent">
+        <Grid Name="_dragBox" Cursor="SizeAll"
+              MouseLeftButtonDown="DragBox_MouseLeftButtonDown"
+              MouseMove="DragBox_MouseMove"
+              MouseLeftButtonUp="DragBox_MouseLeftButtonUp">
+            <Rectangle Fill="#99FF0000" Stroke="Red" StrokeThickness="4" />
+            <TextBlock Name="_hintText"
+                       Foreground="White"
+                       FontSize="14"
+                       FontWeight="Bold"
+                       Background="#CC000000"
+                       Padding="10,6"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Top"
+                       TextWrapping="Wrap"
+                       Text="Drag the red box to position — press Enter to confirm, Escape to cancel" />
+        </Grid>
+    </Canvas>
+</Window>

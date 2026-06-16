@@ -10,7 +10,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Runtime.InteropServices;
 
 using AruaRoseLoginManager.Data;
 using AruaRoseLoginManager.Helpers;
@@ -22,45 +21,6 @@ namespace AruaRoseLoginManager.Controls
     /// </summary>
     public partial class PartyForm : UserControl
     {
-        // P/Invoke declarations for global mouse hook
-        private const int WH_MOUSE_LL = 14;
-        private const int WM_LBUTTONDOWN = 0x0201;
-        private IntPtr _hookHandle = IntPtr.Zero;
-        private LowLevelMouseProc _mouseDelegate = null;
-        private TextBox _captureXTextBox = null;
-        private TextBox _captureYTextBox = null;
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool UnhookWindowsHookEx(IntPtr hhk);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
-
-        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern IntPtr GetModuleHandle(string lpModuleName);
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct POINT
-        {
-            public int x;
-            public int y;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct MSLLHOOKSTRUCT
-        {
-            public POINT pt;
-            public uint mouseData;
-            public uint flags;
-            public uint time;
-            public IntPtr dwExtraInfo;
-        }
-
-        public delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
 
         private List<string> _selectedMembers;
         private ObservableCollection<string> _availableAccounts;
@@ -244,35 +204,20 @@ namespace AruaRoseLoginManager.Controls
             return 768;
         }
 
-        private void CaptureScreenCoordinates(TextBox xTextBox, TextBox yTextBox)
+        private void CaptureScreenCoordinates(TextBox xTextBox, TextBox yTextBox, int boxWidth, int boxHeight)
         {
-            _captureXTextBox = xTextBox;
-            _captureYTextBox = yTextBox;
+            int currentX = int.TryParse(xTextBox.Text, out int px) ? px : 0;
+            int currentY = int.TryParse(yTextBox.Text, out int py) ? py : 0;
 
-            _mouseDelegate = MouseHookCallback;
-            IntPtr moduleHandle = GetModuleHandle(null);
-            _hookHandle = SetWindowsHookEx(WH_MOUSE_LL, _mouseDelegate, moduleHandle, 0);
-
-            MessageBox.Show("Click on the screen location to capture coordinates.\nPress Escape to cancel.", "Capture Coordinates");
-
-            UnhookWindowsHookEx(_hookHandle);
-            _hookHandle = IntPtr.Zero;
-        }
-
-        private IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
-        {
-            if (nCode >= 0 && wParam == (IntPtr)WM_LBUTTONDOWN)
+            var picker = new PositionPickerWindow(boxWidth, boxHeight, currentX, currentY)
             {
-                MSLLHOOKSTRUCT hookStruct = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
-                _captureXTextBox.Text = hookStruct.pt.x.ToString();
-                _captureYTextBox.Text = hookStruct.pt.y.ToString();
-
-                // Unhook after capturing one click
-                UnhookWindowsHookEx(_hookHandle);
-                _hookHandle = IntPtr.Zero;
+                Owner = Window.GetWindow(this)
+            };
+            if (picker.ShowDialog() == true)
+            {
+                xTextBox.Text = picker.ResultX.ToString();
+                yTextBox.Text = picker.ResultY.ToString();
             }
-
-            return CallNextHookEx(_hookHandle, nCode, wParam, lParam);
         }
 
         private void CancelButton_Click(object sender, EventArgs e)
@@ -422,7 +367,12 @@ namespace AruaRoseLoginManager.Controls
             Grid.SetColumn(setButton, 8);
             memberGrid.Children.Add(setButton);
 
-            setButton.Click += (sender, e) => CaptureScreenCoordinates(xTextBox, yTextBox);
+            setButton.Click += (sender, e) =>
+            {
+                int w = int.TryParse(widthTextBox.Text, out int sw) ? sw : 1024;
+                int h = int.TryParse(heightTextBox.Text, out int sh) ? sh : 768;
+                CaptureScreenCoordinates(xTextBox, yTextBox, w, h);
+            };
 
             ComboBox monitorComboBox = new ComboBox() { SelectedIndex = monitor, Margin = new Thickness(2) };
             monitorComboBox.Items.Add("0");

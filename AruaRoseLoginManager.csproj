@@ -138,6 +138,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Controls\PositionPickerWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Controls\WebsiteLoginWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -183,6 +187,9 @@
     </Compile>
     <Compile Include="Controls\PartyForm.xaml.cs">
       <DependentUpon>PartyForm.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\PositionPickerWindow.xaml.cs">
+      <DependentUpon>PositionPickerWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Controls\WebsiteLoginWindow.xaml.cs">
       <DependentUpon>WebsiteLoginWindow.xaml</DependentUpon>
